@@ -1,0 +1,4 @@
+/memory
+/benchmark-results*.json
+/coverage.out
+/*.test

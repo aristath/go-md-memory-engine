@@ -1,0 +1,272 @@
+{
+  "timestamp": "2026-10-15T11:23:59Z",
+  "go": "go1.27.0",
+  "os": "linux",
+  "arch": "amd64",
+  "cpus": 32,
+  "cpu": "AMD Ryzen 9 9950X 16-Core Processor",
+  "dataset": "Go standard-library documentation comment groups (120..3000 bytes), one comment per memory; deterministic selection in sorted source-file order. Go sources are BSD licensed; see $GOROOT/LICENSE. This models varied real text, not personal-memory distribution.",
+  "source_comments": 34073,
+  "samples_per_operation": 5,
+  "measurements": [
+    {
+      "records": 100,
+      "corpus_bytes": 65797,
+      "cache_bytes": 1184216,
+      "index_ms": 12.032695,
+      "structured_p50_ms": 0.901385,
+      "structured_p95_ms": 1.248223,
+      "lexical_p50_ms": 1.012165,
+      "lexical_p95_ms": 1.157944,
+      "taxonomies_p50_ms": 0.736036,
+      "one_edit_sync_ms": 1.557431,
+      "one_edit_parsed": 1,
+      "unchanged_parsed": 0,
+      "semantic_cold_ms": 3815.542495,
+      "semantic_p50_ms": 13.283548,
+      "semantic_p95_ms": 14.81864,
+      "hybrid_p50_ms": 12.762442
+    },
+    {
+      "records": 1000,
+      "corpus_bytes": 617441,
+      "cache_bytes": 10590046,
+      "index_ms": 122.660783,
+      "structured_p50_ms": 5.661399,
+      "structured_p95_ms": 6.520516,
+      "lexical_p50_ms": 8.604484,
+      "lexical_p95_ms": 8.892982,
+      "taxonomies_p50_ms": 5.422541,
+      "one_edit_sync_ms": 8.137286,
+      "one_edit_parsed": 1,
+      "unchanged_parsed": 0,
+      "semantic_cold_ms": 44379.284481,
+      "semantic_p50_ms": 39.14479,
+      "semantic_p95_ms": 39.902286,
+      "hybrid_p50_ms": 38.722823
+    },
+    {
+      "records": 10000,
+      "corpus_bytes": 5748147,
+      "cache_bytes": 101586511,
+      "index_ms": 1367.39921,
+      "structured_p50_ms": 68.364654,
+      "structured_p95_ms": 74.216993,
+      "lexical_p50_ms": 95.730497,
+      "lexical_p95_ms": 97.899846,
+      "taxonomies_p50_ms": 68.299215,
+      "one_edit_sync_ms": 102.300646,
+      "one_edit_parsed": 1,
+      "unchanged_parsed": 0,
+      "semantic_cold_ms": 367247.658162,
+      "semantic_p50_ms": 363.43007,
+      "semantic_p95_ms": 378.624212,
+      "hybrid_p50_ms": 967.949526
+    }
+  ],
+  "embedding_model": "/var/home/aristath/models/granite-embedding-311M-multilingual-r2-Q4_K_M.gguf",
+  "quality": [
+    {
+      "query": "Playing musical instruments while recording a song in a studio",
+      "expected": "recording",
+      "mode": "lexical",
+      "retrieved": [],
+      "hit_at_1": false,
+      "milliseconds": 0.488168
+    },
+    {
+      "query": "Ηχογράφηση τραγουδιού με κιθάρα και πιάνο",
+      "expected": "recording",
+      "mode": "lexical",
+      "retrieved": [
+        "recording"
+      ],
+      "hit_at_1": true,
+      "milliseconds": 0.453137
+    },
+    {
+      "query": "Preparing a bean soup with vegetables in a kitchen",
+      "expected": "cooking",
+      "mode": "lexical",
+      "retrieved": [],
+      "hit_at_1": false,
+      "milliseconds": 0.462588
+    },
+    {
+      "query": "Προτιμήσεις για καφέ χωρίς ζάχαρη",
+      "expected": "coffee",
+      "mode": "lexical",
+      "retrieved": [],
+      "hit_at_1": false,
+      "milliseconds": 0.464137
+    },
+    {
+      "query": "Ταξίδι στην Κρήτη με πλοίο",
+      "expected": "travel",
+      "mode": "lexical",
+      "retrieved": [],
+      "hit_at_1": false,
+      "milliseconds": 0.425818
+    },
+    {
+      "query": "Fixing a damaged bike chain and brakes",
+      "expected": "bicycle",
+      "mode": "lexical",
+      "retrieved": [
+        "bicycle"
+      ],
+      "hit_at_1": true,
+      "milliseconds": 0.416998
+    },
+    {
+      "query": "Playing musical instruments while recording a song in a studio",
+      "expected": "recording",
+      "mode": "semantic",
+      "retrieved": [
+        "recording",
+        "garden",
+        "cooking"
+      ],
+      "hit_at_1": true,
+      "milliseconds": 207.06991
+    },
+    {
+      "query": "Ηχογράφηση τραγουδιού με κιθάρα και πιάνο",
+      "expected": "recording",
+      "mode": "semantic",
+      "retrieved": [
+        "recording",
+        "bicycle",
+        "garden"
+      ],
+      "hit_at_1": true,
+      "milliseconds": 14.093098
+    },
+    {
+      "query": "Preparing a bean soup with vegetables in a kitchen",
+      "expected": "cooking",
+      "mode": "semantic",
+      "retrieved": [
+        "cooking",
+        "garden",
+        "coffee"
+      ],
+      "hit_at_1": true,
+      "milliseconds": 11.77409
+    },
+    {
+      "query": "Προτιμήσεις για καφέ χωρίς ζάχαρη",
+      "expected": "coffee",
+      "mode": "semantic",
+      "retrieved": [
+        "coffee",
+        "cooking",
+        "garden"
+      ],
+      "hit_at_1": true,
+      "milliseconds": 12.227247
+    },
+    {
+      "query": "Ταξίδι στην Κρήτη με πλοίο",
+      "expected": "travel",
+      "mode": "semantic",
+      "retrieved": [
+        "travel",
+        "recording",
+        "bicycle"
+      ],
+      "hit_at_1": true,
+      "milliseconds": 11.74538
+    },
+    {
+      "query": "Fixing a damaged bike chain and brakes",
+      "expected": "bicycle",
+      "mode": "semantic",
+      "retrieved": [
+        "bicycle",
+        "travel",
+        "garden"
+      ],
+      "hit_at_1": true,
+      "milliseconds": 10.356677
+    },
+    {
+      "query": "Playing musical instruments while recording a song in a studio",
+      "expected": "recording",
+      "mode": "hybrid",
+      "retrieved": [
+        "recording",
+        "garden",
+        "cooking"
+      ],
+      "hit_at_1": true,
+      "milliseconds": 11.058384
+    },
+    {
+      "query": "Ηχογράφηση τραγουδιού με κιθάρα και πιάνο",
+      "expected": "recording",
+      "mode": "hybrid",
+      "retrieved": [
+        "recording",
+        "bicycle",
+        "garden"
+      ],
+      "hit_at_1": true,
+      "milliseconds": 12.280667
+    },
+    {
+      "query": "Preparing a bean soup with vegetables in a kitchen",
+      "expected": "cooking",
+      "mode": "hybrid",
+      "retrieved": [
+        "cooking",
+        "garden",
+        "coffee"
+      ],
+      "hit_at_1": true,
+      "milliseconds": 10.771225
+    },
+    {
+      "query": "Προτιμήσεις για καφέ χωρίς ζάχαρη",
+      "expected": "coffee",
+      "mode": "hybrid",
+      "retrieved": [
+        "coffee",
+        "cooking",
+        "garden"
+      ],
+      "hit_at_1": true,
+      "milliseconds": 11.62402
+    },
+    {
+      "query": "Ταξίδι στην Κρήτη με πλοίο",
+      "expected": "travel",
+      "mode": "hybrid",
+      "retrieved": [
+        "travel",
+        "recording",
+        "bicycle"
+      ],
+      "hit_at_1": true,
+      "milliseconds": 11.308432
+    },
+    {
+      "query": "Fixing a damaged bike chain and brakes",
+      "expected": "bicycle",
+      "mode": "hybrid",
+      "retrieved": [
+        "bicycle",
+        "travel",
+        "garden"
+      ],
+      "hit_at_1": true,
+      "milliseconds": 10.207148
+    }
+  ],
+  "limitations": [
+    "Latency includes collection reconciliation, derived-manifest decoding and opening/closing the persistent index, as a fresh CLI operation would.",
+    "Warm filesystem caches; sequential workload on this host. These are not universal capacity or concurrency guarantees.",
+    "Exact cosine semantic ranking is O(eligible chunks * embedding dimensions); no ANN approximation.",
+    "Bilingual recall cases are hand-authored functional probes, not an independent retrieval benchmark."
+  ]
+}

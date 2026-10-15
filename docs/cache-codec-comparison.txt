@@ -1,0 +1,20 @@
+Isolated generated dense-vector decoder benchmark, 10000 x 768 float64 values.
+This measures encoding overhead, not model quality or end-to-end recall.
+
+JSON baseline:
+goos: linux
+goarch: amd64
+pkg: markdownmemory
+cpu: AMD Ryzen 9 9950X 16-Core Processor
+BenchmarkVectorCacheDecode-32    	       3	 765760967 ns/op	 211.06 MB/s	689500541 B/op	  130192 allocs/op
+PASS
+ok  	markdownmemory	3.942s
+
+Standard-library gob:
+goos: linux
+goarch: amd64
+pkg: markdownmemory
+cpu: AMD Ryzen 9 9950X 16-Core Processor
+BenchmarkVectorCacheDecode-32    	       3	  63646599 ns/op	1089.91 MB/s	333688533 B/op	   80225 allocs/op
+PASS
+ok  	markdownmemory	0.466s
