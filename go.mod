@@ -1,4 +1,4 @@
-module markdownmemory
+module github.com/aristath/go-md-memory-engine
 
 go 1.27.0
 

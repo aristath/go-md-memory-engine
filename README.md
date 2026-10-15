@@ -1,4 +1,4 @@
-# markdown-memory
+# go-md-memory-engine
 
 A standalone Go library and JSON CLI for memories stored in Markdown. Files hold
 the complete collection; an embedded Bleve index and embedding cache accelerate
@@ -29,16 +29,20 @@ JSON
 ./memory -root /path/to/my-collection taxonomies
 ```
 
-The local module name is `markdownmemory`. Import it from another Go project with
-a local `replace` directive until a publication/import path is chosen:
+Install the CLI or import the Go library from its independent repository:
 
 ```sh
-go mod edit -require=markdownmemory@v0.0.0
-go mod edit -replace=markdownmemory=/absolute/path/to/markdown-memory
+go install github.com/aristath/go-md-memory-engine/cmd/memory@latest
+go get github.com/aristath/go-md-memory-engine
+```
+
+```go
+import memory "github.com/aristath/go-md-memory-engine"
 ```
 
 See [the executable public API example](example_test.go), [design](DESIGN.md),
-[measured results](docs/verification.md), and `go doc markdownmemory`.
+[measured results](docs/verification.md), and
+`go doc github.com/aristath/go-md-memory-engine`.
 
 ## Document format
 

@@ -12,7 +12,7 @@ import (
 	"os/signal"
 	"syscall"
 
-	memory "markdownmemory"
+	memory "github.com/aristath/go-md-memory-engine"
 )
 
 func main() { os.Exit(run()) }

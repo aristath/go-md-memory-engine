@@ -18,7 +18,7 @@ import (
 	"strings"
 	"time"
 
-	memory "markdownmemory"
+	memory "github.com/aristath/go-md-memory-engine"
 )
 
 type measurement struct {
