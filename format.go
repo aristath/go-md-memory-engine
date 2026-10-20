@@ -77,11 +77,11 @@ func decodeJSON(data []byte, out any) error {
 
 // Encode renders metadata without parsing or reformatting the Markdown body.
 func Encode(r Record) ([]byte, error) {
-	body := r.Body
-	r.Body = ""
 	if e := r.normalize(); e != nil {
 		return nil, e
 	}
+	body := r.Body
+	r.Body = ""
 	b, e := json.MarshalIndent(r, "", "  ")
 	if e != nil {
 		return nil, e

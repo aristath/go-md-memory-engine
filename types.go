@@ -38,7 +38,7 @@ func (e *CollectionError) Unwrap() error { return e.Err }
 type Record struct {
 	Format     int                `json:"format"`
 	ID         string             `json:"id"`
-	Title      string             `json:"title"`
+	Title      string             `json:"title,omitempty"`
 	Kind       string             `json:"kind,omitempty"`
 	CreatedAt  string             `json:"created_at"`
 	UpdatedAt  string             `json:"updated_at"`
@@ -260,8 +260,11 @@ func (r Record) validate() error {
 	if !idPattern.MatchString(r.ID) {
 		return errors.New("ID must be 1..128 ASCII letters, digits, dot, underscore or hyphen, starting with a letter or digit")
 	}
-	if !validName(r.Title) {
-		return errors.New("title must be nonempty, single-line and at most 256 bytes")
+	if r.Title == "" && strings.TrimSpace(r.Body) == "" {
+		return errors.New("a title or nonempty body is required")
+	}
+	if r.Title != "" && !validName(r.Title) {
+		return errors.New("title must be single-line and at most 256 bytes when supplied")
 	}
 	if r.Kind != "" && !validName(r.Kind) {
 		return errors.New("kind must be single-line and at most 256 bytes")

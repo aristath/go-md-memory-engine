@@ -1,6 +1,7 @@
 package memory
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
@@ -539,5 +540,46 @@ func TestMetadataPatchWithoutBodyRoundTrip(t *testing.T) {
 	}
 	if d := mustGet(t, s, "a"); d.Record.Body != "" {
 		t.Fatal("explicit empty body ignored")
+	}
+}
+
+func TestBodyOnlyRecords(t *testing.T) {
+	ctx := context.Background()
+	s := openTest(t)
+	body := "  Aristeidis likes salmon with pligouri.\n"
+	saved, err := s.Create(ctx, Record{Body: body})
+	if err != nil {
+		t.Fatal(err)
+	}
+	d, err := s.Get(ctx, saved.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if d.Record.Title != "" || d.Record.Body != body {
+		t.Fatalf("changed body-only record: %#v", d.Record)
+	}
+	data, err := Encode(d.Record)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if bytes.Contains(data, []byte(`"title"`)) {
+		t.Fatal("generated a title")
+	}
+	parsed, err := Parse(data)
+	if err != nil || parsed.Body != body {
+		t.Fatalf("round trip: %#v %v", parsed, err)
+	}
+	if _, err = s.Patch(ctx, saved.ID, d.Hash, map[string]any{"body": "Aristeidis likes bulgur."}); err != nil {
+		t.Fatal(err)
+	}
+	hits, err := s.Query(ctx, Query{Text: "bulgur"})
+	if err != nil || len(hits.Items) != 1 || hits.Items[0].ID != saved.ID {
+		t.Fatalf("query: %#v %v", hits, err)
+	}
+	if _, err = s.Create(ctx, Record{Kind: "person"}); err == nil {
+		t.Fatal("unnamed empty person node accepted")
+	}
+	if _, err = s.Create(ctx, Record{Title: "bad\ntitle", Body: body}); err == nil {
+		t.Fatal("invalid supplied title accepted")
 	}
 }

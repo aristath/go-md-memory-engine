@@ -80,8 +80,10 @@ use `extra` for arbitrary metadata. Taxonomy names and their meanings are open.
 `Create` supplies format, a random 128-bit hex ID when absent, and timestamps.
 A caller may provide an ID and creation timestamp. IDs contain 1–128 ASCII
 letters/digits/dots/underscores/hyphens and start with a letter or digit.
-Titles are nonempty single-line strings of at most 256 bytes. Manual documents
-must include format, ID, title, and valid RFC3339 timestamps.
+Titles are optional for records with a nonempty body. Supplied titles are single-line
+strings of at most 256 bytes. Records without body text still require a title (for
+example, a named person node). Manual documents must include format, ID and valid
+RFC3339 timestamps; a body-only record does not acquire a generated title.
 
 Engine-created documents live at `records/<id>.md`. Existing valid documents can
 live anywhere below the collection root except reserved `.memory/`. Filenames
