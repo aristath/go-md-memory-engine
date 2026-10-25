@@ -35,6 +35,7 @@ type vector struct {
 }
 type Recall struct {
 	Text          string   `json:"text"`
+	Vectors       []string `json:"vectors,omitempty"`
 	Mode          string   `json:"mode,omitempty"`
 	Filter        Query    `json:"filter,omitempty"`
 	MinSimilarity *float64 `json:"min_similarity,omitempty"`
@@ -163,6 +164,19 @@ func (c EmbeddingConfig) embed(ctx context.Context, texts []string) ([][]float64
 func (tx *session) vectors(ctx context.Context, c EmbeddingConfig, ids []string) error {
 	// Ordinary operations never read vector data. Load this disposable cache
 	// only for semantic recall, and discard stale records before scoring.
+	if tx.readyVectors == nil {
+		tx.readyVectors = map[string]bool{}
+	}
+	allReady := true
+	for _, id := range ids {
+		if !tx.readyVectors[id] {
+			allReady = false
+			break
+		}
+	}
+	if allReady {
+		return nil
+	}
 	b, readErr := tx.s.root.ReadFile(".memory/vectors.gob")
 	if readErr == nil {
 		if decodeVectors(b, &tx.state.Vectors) != nil || tx.state.Vectors == nil {
@@ -171,10 +185,14 @@ func (tx *session) vectors(ctx context.Context, c EmbeddingConfig, ids []string)
 	} else if !errors.Is(readErr, fs.ErrNotExist) {
 		return readErr
 	}
+	eligible := map[string]bool{}
+	for _, id := range ids {
+		eligible[id] = true
+	}
 	pruned := false
 	for id, v := range tx.state.Vectors {
 		d, ok := tx.state.Docs[id]
-		if !ok || v.Content != digest([]byte(searchContent(d.Record))) {
+		if !ok || (eligible[id] && v.Content != digest([]byte(tx.embeddingContent(d)))) {
 			delete(tx.state.Vectors, id)
 			pruned = true
 		}
@@ -184,10 +202,11 @@ func (tx *session) vectors(ctx context.Context, c EmbeddingConfig, ids []string)
 	counts := []int{}
 	for _, id := range ids {
 		d := tx.state.Docs[id]
-		content := searchContent(d.Record)
+		content := tx.embeddingContent(d)
 		hash := digest([]byte(content))
 		v, ok := tx.state.Vectors[id]
 		if ok && v.Config == c.key() && v.Content == hash && validVector(v, c, len(chunks(content, c.ChunkRunes))) {
+			tx.readyVectors[id] = true
 			continue
 		}
 		parts := chunks(content, c.ChunkRunes)
@@ -205,8 +224,9 @@ func (tx *session) vectors(ctx context.Context, c EmbeddingConfig, ids []string)
 	offset := 0
 	for i, id := range pending {
 		n := counts[i]
-		tx.state.Vectors[id] = vector{Content: digest([]byte(searchContent(tx.state.Docs[id].Record))), Config: c.key(), Values: embeddings[offset : offset+n]}
+		tx.state.Vectors[id] = vector{Content: digest([]byte(tx.embeddingContent(tx.state.Docs[id]))), Config: c.key(), Values: embeddings[offset : offset+n]}
 		offset += n
+		tx.readyVectors[id] = true
 	}
 	// Only derived data changed. An interrupted cache write can be discarded.
 	b, e = encodeVectors(tx.state.Vectors)
@@ -254,8 +274,14 @@ func validVector(v vector, c EmbeddingConfig, count int) bool {
 // Search returns ranked lexical, semantic or hybrid candidates. Semantic failure
 // falls back explicitly to lexical results; recall is never exhaustive.
 func (s *Store) Search(ctx context.Context, r Recall) (Results, error) {
+	var result Results
+	err := s.with(ctx, false, func(tx *session) error { var err error; result, err = tx.search(ctx, r); return err })
+	return result, err
+}
+
+func (tx *session) search(ctx context.Context, r Recall) (Results, error) {
 	out := Results{Items: []Hit{}}
-	e := s.with(ctx, false, func(tx *session) error {
+	e := func() error {
 		if strings.TrimSpace(r.Text) == "" {
 			return errors.New("recall text required")
 		}
@@ -274,7 +300,16 @@ func (s *Store) Search(ctx context.Context, r Recall) (Results, error) {
 		q := r.Filter
 		q.Offset = 0
 		q.Limit = max(1, len(tx.state.Docs))
-		eligible, e := tx.query(ctx, q)
+		encodedQuery, _ := json.Marshal(q)
+		key := digest(encodedQuery)
+		eligible, cached := tx.recallQueries[key]
+		var e error
+		if !cached {
+			eligible, e = tx.query(ctx, q)
+			if tx.recallQueries != nil && e == nil {
+				tx.recallQueries[key] = eligible
+			}
+		}
 		if e != nil {
 			return e
 		}
@@ -289,7 +324,7 @@ func (s *Store) Search(ctx context.Context, r Recall) (Results, error) {
 		}
 		lexicalScores := map[string]float64{}
 		lexicalOrder := []string{}
-		if len(ids) > 0 {
+		if len(ids) > 0 && r.Mode != "semantic" {
 			req := bleveRequest(r.Text, ids)
 			res, e := tx.index.SearchInContext(ctx, req)
 			if e != nil {
@@ -305,17 +340,21 @@ func (s *Store) Search(ctx context.Context, r Recall) (Results, error) {
 		semanticOK := false
 		if r.Mode != "lexical" && len(ids) > 0 {
 			var semErr error
-			if s.options.Embedding == nil {
+			if tx.s.options.Embedding == nil {
 				semErr = errors.New("no embedding endpoint configured")
 			} else {
-				c, err := s.options.Embedding.normalized()
+				c, err := tx.s.options.Embedding.normalized()
 				semErr = err
 				if semErr == nil {
 					semErr = tx.vectors(ctx, c, ids)
 				}
 				var queryVectors [][]float64
 				if semErr == nil {
-					queryVectors, semErr = c.embed(ctx, []string{r.Text})
+					if len(r.Vectors) > 0 {
+						queryVectors, semErr = decodeQueryVectors(r.Vectors, c.Dimensions)
+					} else {
+						queryVectors, semErr = c.embed(ctx, []string{r.Text})
+					}
 				}
 				if semErr == nil {
 					for _, id := range ids {
@@ -327,9 +366,13 @@ func (s *Store) Search(ctx context.Context, r Recall) (Results, error) {
 								semErr = errors.New("cached/query embedding dimensions differ; configure dimensions and re-embed")
 								break
 							}
-							score := 0.0
-							for j, x := range values {
-								score += x * queryVectors[0][j]
+							score := -math.MaxFloat64
+							for _, query := range queryVectors {
+								dot := 0.0
+								for j, x := range values {
+									dot += x * query[j]
+								}
+								score = max(score, dot)
 							}
 							score = max(-1, min(1, score))
 							if score > best {
@@ -342,7 +385,7 @@ func (s *Store) Search(ctx context.Context, r Recall) (Results, error) {
 						}
 						if r.MinSimilarity == nil || best >= *r.MinSimilarity {
 							semanticScores[id] = best
-							bestChunks[id] = chunks(searchContent(tx.state.Docs[id].Record), c.ChunkRunes)[which]
+							bestChunks[id] = chunks(tx.embeddingContent(tx.state.Docs[id]), c.ChunkRunes)[which]
 						}
 					}
 				}
@@ -399,7 +442,7 @@ func (s *Store) Search(ctx context.Context, r Recall) (Results, error) {
 			out.NextOffset = &end
 		}
 		return nil
-	})
+	}()
 	return out, e
 }
 func rankScores(scores map[string]float64) []string {

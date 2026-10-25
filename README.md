@@ -413,3 +413,23 @@ go run ./cmd/memory-measure -quality-only \
 The measurement command uses only temporary collections and removes them. Scale
 tests use real Go documentation text; quality probes use explicitly hand-authored
 Greek/English accounts. See the committed report for measurements and limitations.
+
+### Cached query vectors and batched recall
+
+`search-many` accepts `{"queries":[...],"bodies":{...}}` and returns
+`{"results":[...],"documents":[...]}`. Each query has the same fields as `search`,
+plus optional `vectors`: an array of Base64 little-endian float32 vectors. Their
+strongest cosine match is used for each document. Vectors must be finite,
+nonzero, and match the configured dimension. Query text remains available for
+lexical search and excerpts. Applications must invalidate cached query vectors
+when their embedding configuration or source text changes.
+
+Optional `bodies` maps document IDs to `{ "hash": "current document hash",
+"text": "semantic body projection" }`. This lets an application search a compact
+standalone account while retaining full evidence in the document. Titles and
+taxonomies remain part of semantic content. Stale projections are rejected.
+
+One batch holds one catalogue snapshot, reuses eligible-document and vector
+preparation, and returns complete matched documents from that same snapshot.
+`embed` accepts the same object without queries to prepare document embeddings.
+These operations update disposable vector caches, never canonical records.

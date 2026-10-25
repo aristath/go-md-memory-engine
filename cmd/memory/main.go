@@ -28,7 +28,7 @@ func run() int {
 	timeout := flags.Int("embedding-timeout", 0, "embedding HTTP timeout in seconds; 0 uses 60")
 	usage := func() {
 		flags.SetOutput(os.Stderr)
-		fmt.Fprintln(os.Stderr, "Usage: memory -root DIRECTORY [embedding flags] COMMAND < input.json\nCommands: create get get-many update patch delete query search taxonomies entries links traverse sync check rebuild stats\nAll successful output is JSON. See README.md for input shapes.")
+		fmt.Fprintln(os.Stderr, "Usage: memory -root DIRECTORY [embedding flags] COMMAND < input.json\nCommands: create get get-many update patch delete query search search-many embed taxonomies entries links traverse sync check rebuild stats\nAll successful output is JSON. See README.md for input shapes.")
 		flags.PrintDefaults()
 	}
 	flags.Usage = func() {}
@@ -117,6 +117,11 @@ func run() int {
 		var r memory.Recall
 		if e = decode(&r); e == nil {
 			result, e = store.Search(ctx, r)
+		}
+	case "search-many", "embed":
+		var r memory.SearchBatch
+		if e = decode(&r); e == nil {
+			result, e = store.SearchMany(ctx, r)
 		}
 	case "taxonomies":
 		result, e = store.Taxonomies(ctx)

@@ -38,10 +38,13 @@ type state struct {
 	Diagnostics []Diagnostic          `json:"-"`
 }
 type session struct {
-	s      *Store
-	state  *state
-	index  bleve.Index
-	report SyncReport
+	s             *Store
+	state         *state
+	index         bleve.Index
+	report        SyncReport
+	bodies        map[string]SearchBody
+	readyVectors  map[string]bool
+	recallQueries map[string]Results
 }
 
 // Open creates a private collection if absent. No model calls occur on Open.
