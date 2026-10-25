@@ -324,17 +324,6 @@ func (tx *session) search(ctx context.Context, r Recall) (Results, error) {
 		}
 		lexicalScores := map[string]float64{}
 		lexicalOrder := []string{}
-		if len(ids) > 0 && r.Mode != "semantic" {
-			req := bleveRequest(r.Text, ids)
-			res, e := tx.index.SearchInContext(ctx, req)
-			if e != nil {
-				return e
-			}
-			for _, h := range res.Hits {
-				lexicalScores[h.ID] = h.Score
-				lexicalOrder = append(lexicalOrder, h.ID)
-			}
-		}
 		semanticScores := map[string]float64{}
 		bestChunks := map[string]string{}
 		semanticOK := false
@@ -398,6 +387,17 @@ func (tx *session) search(ctx context.Context, r Recall) (Results, error) {
 				semanticScores = map[string]float64{}
 			} else {
 				semanticOK = true
+			}
+		}
+		if len(ids) > 0 && (r.Mode != "semantic" || !semanticOK) {
+			req := bleveRequest(r.Text, ids)
+			res, e := tx.index.SearchInContext(ctx, req)
+			if e != nil {
+				return e
+			}
+			for _, h := range res.Hits {
+				lexicalScores[h.ID] = h.Score
+				lexicalOrder = append(lexicalOrder, h.ID)
 			}
 		}
 		scores := lexicalScores
