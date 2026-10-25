@@ -217,23 +217,41 @@ func (tx *session) vectors(ctx context.Context, c EmbeddingConfig, ids []string)
 	if len(pending) == 0 && !pruned {
 		return nil
 	}
-	embeddings, e := c.embed(ctx, texts)
-	if e != nil {
-		return e
+	flush := func() error {
+		b, err := encodeVectors(tx.state.Vectors)
+		if err != nil {
+			return err
+		}
+		return tx.s.atomic(".memory/vectors.gob", b, nil, false)
+	}
+	if len(pending) == 0 {
+		return flush()
 	}
 	offset := 0
-	for i, id := range pending {
-		n := counts[i]
-		tx.state.Vectors[id] = vector{Content: digest([]byte(tx.embeddingContent(tx.state.Docs[id]))), Config: c.key(), Values: embeddings[offset : offset+n]}
-		offset += n
-		tx.readyVectors[id] = true
+	for start := 0; start < len(pending); start += 16 {
+		end := min(start+16, len(pending))
+		ntexts := 0
+		for _, n := range counts[start:end] {
+			ntexts += n
+		}
+		embeddings, err := c.embed(ctx, texts[offset:offset+ntexts])
+		if err != nil {
+			return err
+		}
+		part := 0
+		for i := start; i < end; i++ {
+			id, n := pending[i], counts[i]
+			tx.state.Vectors[id] = vector{Content: digest([]byte(tx.embeddingContent(tx.state.Docs[id]))), Config: c.key(), Values: embeddings[part : part+n]}
+			tx.readyVectors[id] = true
+			part += n
+		}
+		// Derived vectors can be resumed after a timeout; canonical documents never change.
+		if err := flush(); err != nil {
+			return err
+		}
+		offset += ntexts
 	}
-	// Only derived data changed. An interrupted cache write can be discarded.
-	b, e = encodeVectors(tx.state.Vectors)
-	if e != nil {
-		return e
-	}
-	return tx.s.atomic(".memory/vectors.gob", b, nil, false)
+	return nil
 }
 
 func encodeVectors(v map[string]vector) ([]byte, error) {

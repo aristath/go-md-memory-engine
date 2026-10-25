@@ -3,7 +3,12 @@ package memory
 import (
 	"encoding/base64"
 	"encoding/binary"
+	"encoding/json"
+	"fmt"
 	"math"
+	"net/http"
+	"net/http/httptest"
+	"sync/atomic"
 	"testing"
 )
 
@@ -52,5 +57,53 @@ func TestBatchCachedQueriesAndEvidenceProjection(t *testing.T) {
 	}
 	if _, err = s.SearchMany(ctx, request); err == nil {
 		t.Fatal("accepted an obsolete projection")
+	}
+}
+
+func TestPartialEmbeddingPreparationIsResumable(t *testing.T) {
+	var calls atomic.Int64
+	var failing atomic.Bool
+	failing.Store(true)
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		var body struct {
+			Input []string `json:"input"`
+		}
+		json.NewDecoder(r.Body).Decode(&body)
+		n := calls.Add(int64(len(body.Input)))
+		if failing.Load() && n > 16 {
+			http.Error(w, "unavailable", 503)
+			return
+		}
+		rows := []map[string]any{}
+		for i := range body.Input {
+			rows = append(rows, map[string]any{"index": i, "embedding": []float64{1, 0}})
+		}
+		json.NewEncoder(w).Encode(map[string]any{"data": rows})
+	}))
+	defer server.Close()
+	s, err := Open(t.TempDir(), Options{Embedding: &EmbeddingConfig{BaseURL: server.URL, Model: "test", Dimensions: 2, BatchSize: 1}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer s.Close()
+	bodies := map[string]SearchBody{}
+	for i := 0; i < 40; i++ {
+		id := fmt.Sprintf("record-%02d", i)
+		mustCreate(t, s, Record{ID: id, Body: "body"})
+		d := mustGet(t, s, id)
+		bodies[id] = SearchBody{Hash: d.Hash, Text: "standalone"}
+	}
+	if _, err = s.SearchMany(ctx, SearchBatch{Bodies: bodies}); err == nil {
+		t.Fatal("expected provider failure")
+	}
+	if calls.Load() != 17 {
+		t.Fatal(calls.Load())
+	}
+	failing.Store(false)
+	if _, err = s.SearchMany(ctx, SearchBatch{Bodies: bodies}); err != nil {
+		t.Fatal(err)
+	}
+	if calls.Load() != 41 {
+		t.Fatal("completed vectors were not reused", calls.Load())
 	}
 }
